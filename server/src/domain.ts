@@ -1,12 +1,14 @@
 export type ProjectStatus = 'development' | 'production' | 'post' | 'delivered';
 export type AssetType = 'master' | 'trailer' | 'poster' | 'audio' | 'subtitle';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type EvidenceStatus = 'accepted' | 'pending_review' | 'rejected' | 'expired';
 
 export interface Project { id: string; code: string; title: string; season: number; status: ProjectStatus; currency: string; budgetVersionId: string; deliveryDate: string; }
 export interface BudgetLine { id: string; projectId: string; category: string; subcategory: string; planned: number; committed: number; actual: number; forecast: number; owner: string; risk: 'low' | 'medium' | 'high'; }
 export interface Contract { id: string; projectId: string; vendor: string; scope: string; ceiling: number; committed: number; paid: number; milestones: { name: string; due: string; amount: number; status: 'open' | 'invoiced' | 'paid' }[]; }
 export interface Asset { id: string; projectId: string; name: string; type: AssetType; version: number; status: 'draft' | 'review' | 'approved' | 'locked'; owner: string; checksum: string; territories: string[]; platforms: string[]; availableFrom: string; availableTo: string; rightsTags: string[]; }
-export interface Approval { id: string; projectId: string; entityType: 'budget' | 'asset' | 'delivery'; entityId: string; title: string; requestedBy: string; status: ApprovalStatus; approver: string; createdAt: string; comment?: string; }
+export interface Approval { id: string; projectId: string; entityType: 'budget' | 'asset' | 'delivery'; entityId: string; title: string; requestedBy: string; status: ApprovalStatus; approver: string; createdAt: string; comment?: string; decidedAt?: string; }
+export interface RightsEvidence { id: string; projectId: string; assetId: string; rightsTag: string; status: EvidenceStatus; issuer: string; contractId?: string; validFrom: string; validTo: string; territories: string[]; platforms: string[]; acceptedBy?: string; }
 export interface AuditEvent { id: string; action: string; entity: string; entityId: string; actor: string; at: string; details: string; }
 
 const now = Date.now();
@@ -32,12 +34,20 @@ export const assets: Asset[] = [
   { id: 'AST-001', projectId: 'PRJ-001', name: '北境回声 S01E01 4K HDR Master', type: 'master', version: 7, status: 'review', owner: '后期制片', checksum: 'sha256:91b7…e2a1', territories: ['CN', 'HK', 'SG'], platforms: ['影院', 'StreamBox'], availableFrom: iso(-2), availableTo: iso(730), rightsTags: ['音乐-同步许可', '演员-全媒介'] },
   { id: 'AST-002', projectId: 'PRJ-001', name: '主预告 90s / Cut A', type: 'trailer', version: 4, status: 'approved', owner: '营销部', checksum: 'sha256:42ca…9b02', territories: ['CN'], platforms: ['StreamBox', '短视频'], availableFrom: iso(6), availableTo: iso(180), rightsTags: ['演员-宣传许可'] },
   { id: 'AST-003', projectId: 'PRJ-001', name: '片尾曲 / Winter Signal', type: 'audio', version: 2, status: 'locked', owner: '音乐版权', checksum: 'sha256:113c…78f0', territories: ['CN', 'US', 'CA'], platforms: ['影院', 'StreamBox'], availableFrom: iso(-40), availableTo: iso(52), rightsTags: ['音乐-同步许可'] },
+  { id: 'AST-005', projectId: 'PRJ-001', name: '北境回声 S01E01 英文字幕 SDH', type: 'subtitle', version: 3, status: 'locked', owner: '本地化', checksum: 'sha256:77de…c09a', territories: ['CN', 'HK', 'SG', 'US', 'CA'], platforms: ['影院', 'StreamBox'], availableFrom: iso(-2), availableTo: iso(730), rightsTags: ['字幕-翻译与展示许可'] },
   { id: 'AST-004', projectId: 'PRJ-002', name: 'Orbit E02 Satellite Plates', type: 'master', version: 3, status: 'review', owner: '视觉总监', checksum: 'sha256:8a10…4a9d', territories: ['全球'], platforms: ['影院'], availableFrom: iso(18), availableTo: iso(365), rightsTags: ['航拍-编辑许可'] }
 ];
 export const approvals: Approval[] = [
   { id: 'APR-01', projectId: 'PRJ-001', entityType: 'budget', entityId: 'BUD-001-V3', title: '后期超支预案 V3', requestedBy: '制片主任', status: 'pending', approver: '财务负责人', createdAt: iso(-1) },
   { id: 'APR-02', projectId: 'PRJ-001', entityType: 'asset', entityId: 'AST-001', title: 'E01 最终母版锁定', requestedBy: '后期制片', status: 'pending', approver: '总制片人', createdAt: iso(-2) },
-  { id: 'APR-03', projectId: 'PRJ-002', entityType: 'delivery', entityId: 'DEL-007', title: '海外节展交付包', requestedBy: '发行部', status: 'approved', approver: '法务负责人', createdAt: iso(-5), comment: '已补充航拍授权凭证' }
+  { id: 'APR-03', projectId: 'PRJ-002', entityType: 'delivery', entityId: 'DEL-007', title: '海外节展交付包', requestedBy: '发行部', status: 'approved', approver: '法务负责人', createdAt: iso(-5), decidedAt: iso(-5), comment: '已补充航拍授权凭证' },
+  { id: 'APR-04', projectId: 'PRJ-001', entityType: 'delivery', entityId: 'DEL-101', title: '北境回声海外节展交付包', requestedBy: '发行部', status: 'approved', approver: '法务负责人', createdAt: iso(-3), decidedAt: iso(-3), comment: '范围限已锁定素材，下载前仍需预检授权证明' }
+];
+export const rightsEvidence: RightsEvidence[] = [
+  { id: 'EVD-001', projectId: 'PRJ-001', assetId: 'AST-001', rightsTag: '音乐-同步许可', status: 'accepted', issuer: '远景国际版权', contractId: 'CTR-02', validFrom: iso(-20), validTo: iso(730), territories: ['CN', 'HK', 'SG'], platforms: ['影院', 'StreamBox'], acceptedBy: '法务负责人' },
+  { id: 'EVD-002', projectId: 'PRJ-001', assetId: 'AST-002', rightsTag: '演员-宣传许可', status: 'pending_review', issuer: '演员经纪公司', validFrom: iso(1), validTo: iso(180), territories: ['CN'], platforms: ['StreamBox', '短视频'], acceptedBy: undefined },
+  { id: 'EVD-003', projectId: 'PRJ-001', assetId: 'AST-003', rightsTag: '音乐-同步许可', status: 'accepted', issuer: 'Winter Signal Publishing', contractId: 'CTR-02', validFrom: iso(-40), validTo: iso(52), territories: ['CN', 'US', 'CA'], platforms: ['影院', 'StreamBox'], acceptedBy: '法务负责人' },
+  { id: 'EVD-004', projectId: 'PRJ-001', assetId: 'AST-005', rightsTag: '字幕-翻译与展示许可', status: 'accepted', issuer: '环球字幕工作室', validFrom: iso(-5), validTo: iso(730), territories: ['全球'], platforms: ['影院', 'StreamBox'], acceptedBy: '法务负责人' }
 ];
 export const auditEvents: AuditEvent[] = [{ id: 'AUD-01', action: 'CREATE', entity: 'budget', entityId: 'BUD-001-V3', actor: '制片主任', at: new Date(now - 86400000).toISOString(), details: '从 V2 复制并调整后期科目' }];
 
@@ -66,7 +76,7 @@ export function rightsConflicts(projectId = projects[0].id) {
 
 export function approve(id: string, status: ApprovalStatus, comment = '') {
   const item = approvals.find(approval => approval.id === id); if (!item) return undefined;
-  item.status = status; item.comment = comment; auditEvents.unshift({ id: `AUD-${Date.now()}`, action: status.toUpperCase(), entity: item.entityType, entityId: item.entityId, actor: '当前审批人', at: new Date().toISOString(), details: comment || `${item.title} 已${status === 'approved' ? '通过' : '驳回'}` }); return item;
+  item.status = status; item.comment = comment; item.decidedAt = new Date().toISOString(); auditEvents.unshift({ id: `AUD-${Date.now()}`, action: status.toUpperCase(), entity: item.entityType, entityId: item.entityId, actor: '当前审批人', at: new Date().toISOString(), details: comment || `${item.title} 已${status === 'approved' ? '通过' : '驳回'}` }); return item;
 }
 export function createApproval(input: Pick<Approval, 'projectId' | 'entityType' | 'entityId' | 'title' | 'requestedBy' | 'approver'>) { const item: Approval = { ...input, id: `APR-${Date.now()}`, status: 'pending', createdAt: new Date().toISOString() }; approvals.unshift(item); return item; }
 export function dashboard() { return projects.map(project => projectSummary(project.id)).map(summary => ({ id: summary.project?.id, title: summary.project?.title, status: summary.project?.status, forecast: summary.forecast, variance: summary.variance, pendingApprovals: summary.pendingApprovals, rightsConflicts: rightsConflicts(summary.project?.id).length })); }
